@@ -11,7 +11,7 @@ class User_Command extends \WP_CLI\CommandWithDBObject {
 	 * List users.
 	 *
 	 * @subcommand list
-	 * @synopsis [--role=<role>] [--ids]
+	 * @synopsis [--role=<role>] [--ids] [--output_format=<format>]
 	 */
 	public function _list( $args, $assoc_args ) {
 		global $blog_id;
@@ -33,24 +33,41 @@ class User_Command extends \WP_CLI\CommandWithDBObject {
 			$fields = array('ID', 'user_login', 'display_name', 'user_email',
 				'user_registered');
 
-			$table = new \cli\Table();
+			switch( $assoc_args['output_format'] ) {
+				case 'csv':
 
-			$table->setHeaders( array_merge( $fields, array('roles') ) );
+					WP_CLI::line( '"' . implode( '", "', array_merge( $fields, array( 'roles') ) ) . '"' );
+					foreach( $users as $user ) {
+						$line = array();
 
-			foreach ( $users as $user ) {
-				$line = array();
+						foreach ( $fields as $field ) {
+							$line[] = $user->$field;
+						}
+						$line[] = implode( ',', $user->roles );
+						WP_CLI::line( '"' . implode( '", "', $line ) . '"' );
+					}
+					break;
+				default:
+					$table = new \cli\Table();
 
-				foreach ( $fields as $field ) {
-					$line[] = $user->$field;
-				}
-				$line[] = implode( ',', $user->roles );
+					$table->setHeaders( array_merge( $fields, array('roles') ) );
 
-				$table->addRow( $line );
+					foreach ( $users as $user ) {
+						$line = array();
+
+						foreach ( $fields as $field ) {
+							$line[] = $user->$field;
+						}
+						$line[] = implode( ',', $user->roles );
+
+						$table->addRow( $line );
+					}
+
+					$table->display();
+
+					WP_CLI::line( 'Total: ' . count( $users ) . ' users' );
+					break;
 			}
-
-			$table->display();
-
-			WP_CLI::line( 'Total: ' . count( $users ) . ' users' );
 		}
 	}
 
